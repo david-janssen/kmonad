@@ -11,7 +11,5 @@
 .stack-work
 /bin/
 result
-/Setup.hs
-/cabal.project.local
-/cabal.project.local~
-/kmonad.cabal.save0
+/TAGS
+/cabal.project.local*

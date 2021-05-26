@@ -1,3 +1,4 @@
+{-# LANGUAGE ViewPatterns #-}
 {-|
 Module      : KMonad.App.Parser.TokenJoiner
 Description : The code that turns tokens into a DaemonCfg
@@ -23,6 +24,9 @@ module KMonad.App.Parser.TokenJoiner
   )
 where
 
+import qualified Data.List as L 
+  
+import System.Directory (listDirectory)
 import KMonad.Prelude hiding (uncons)
 
 import KMonad.App.Parser.Types
@@ -78,7 +82,6 @@ instance Show JoinError where
       , "Source length: ", show s, "\n"
       , "Layer length: ", show l ]
 
-
 instance Exception JoinError
 
 -- | Joining Config
@@ -95,12 +98,11 @@ defJCfg = JCfg
 -- | Monad in which we join, just Except over Reader
 newtype J a = J { unJ :: ExceptT JoinError (Reader JCfg) a }
   deriving ( Functor, Applicative, Monad
-           , MonadError JoinError , MonadReader JCfg)
+           , MonadError JoinError , MonadReader JCfg )
 
 -- | Perform a joining computation
 runJ :: J a -> JCfg -> Either JoinError a
-runJ j = runReader (runExceptT $ unJ j)
-
+runJ = runReader . runExceptT . unJ 
 --------------------------------------------------------------------------------
 -- $full
 
@@ -109,13 +111,12 @@ runJ j = runReader (runExceptT $ unJ j)
 -- NOTE: We start joinConfig with the default JCfg, but joinConfig might locally
 -- override settings by things it reads from the config itself.
 joinConfigIO :: HasLogFunc e => [KExpr] -> RIO e CfgToken
-joinConfigIO es = case runJ joinConfig $ defJCfg es of
-  Left  e -> throwM e
-  Right c -> pure c
+joinConfigIO = 
+  pure . runJ joinConfig . defJCfg >=> either throwM pure 
 
 -- | Extract anything matching a particular prism from a list
 extract :: Prism' a b -> [a] -> [b]
-extract p = catMaybes . map (preview p)
+extract p = mapMaybe (preview p)
 
 data SingletonError
   = None
@@ -223,9 +224,13 @@ getAllow = do
 
 
 pickInput :: IToken -> J KeyInputCfg
-pickInput (KDeviceSource f)     = pure . LinuxEvdevCfg    . EvdevCfg $ f
+pickInput (KDeviceSource f)     = pure . LinuxEvdevCfg . EvdevCfg $ f
+pickInput (KFindFirstWithFix fix) = case fix of
+  Prefix pre -> pure . LinuxEvdevCfg . EvdevSearchPrefix pre $ dirs 
+  Suffix pre -> pure . LinuxEvdevCfg . EvdevSearchSuffix pre $ dirs 
+  where dirs = "/dev/input/by-id" :| ["/dev/input/by-path"]
 pickInput (KIOKitSource _)      = pure . MacKIOKitCfg     $ KIOKitCfg
-pickInput (KLowLevelHookSource) = pure . WindowsLLHookCfg $ LLHookCfg
+pickInput KLowLevelHookSource = pure . WindowsLLHookCfg $ LLHookCfg
 
 pickOutput :: OToken -> J KeyOutputCfg
 pickOutput (KUinputSink t init) = pure . LinuxUinputCfg
@@ -247,7 +252,7 @@ joinAliases :: LNames -> [DefAlias] -> J Aliases
 joinAliases ns als = foldM f M.empty $ concat als
   where f mp (t, b) = if t `M.member` mp
           then throwError $ DuplicateAlias t
-          else flip (M.insert t) mp <$> (unnest $ joinButton ns mp b)
+          else flip (M.insert t) mp <$> unnest (joinButton ns mp b)
 
 --------------------------------------------------------------------------------
 -- $but

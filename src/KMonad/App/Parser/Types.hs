@@ -29,6 +29,7 @@ module KMonad.App.Parser.Types
   , KExpr(..)
 
     -- * $defio
+  , Fix(..)
   , IToken(..)
   , OToken(..)
 
@@ -53,6 +54,8 @@ import KMonad.Util
 
 import Text.Megaparsec      as X
 import Text.Megaparsec.Char as X
+  
+import qualified Data.List  as L 
 
 --------------------------------------------------------------------------------
 -- $bsc
@@ -147,9 +150,15 @@ data DefLayer = DefLayer
 --
 -- Different settings
 
+-- | Prefix or suffix
+data Fix fp = Prefix fp
+            | Suffix fp
+            deriving (Show, Eq)
+
 -- | All different input-tokens KMonad can take
 data IToken
   = KDeviceSource FilePath
+  | KFindFirstWithFix (Fix FilePath)
   | KLowLevelHookSource
   | KIOKitSource (Maybe Text)
   deriving Show
