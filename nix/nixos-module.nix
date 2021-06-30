@@ -34,8 +34,8 @@ with lib;
 
     package = mkOption {
       type = types.package;
-      default = import ./default.nix;
-      example = "import ./default.nix";
+      default = pkgs.kmonad;
+      example = "pkgs.kmonad";
       description = ''
         The kmonad package.
       '';
@@ -102,7 +102,7 @@ with lib;
 
         required-units = map (mk-kmonad-service { is-optional=false; }) cfg.configfiles;
 
-        optional-units = map (mk-kmonad-service { is-optional=true;  }) cfg.configfiles;
+        optional-units = map (mk-kmonad-service { is-optional=true;  }) cfg.optionalconfigs;
 
       in
         mkIf cfg.enable ({
