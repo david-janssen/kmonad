@@ -17,7 +17,7 @@
       };
       nixosModule = ({ ... }: {
         nixpkgs.overlays = [ self.overlay ];
-        imports = [ ./nixos-module.nix ];
+        imports = [ ./module-base.nix ];
       });
       overlay = final: prev: { inherit kmonad; };
     };
