@@ -35,18 +35,24 @@ module KMonad.App.Parser.Types
     -- * $lenses
   , AsKExpr(..)
   , AsDefSetting(..)
+
+    -- * $reexport
+  , module X
 ) where
 
 
 import KMonad.Prelude
-
-import KMonad.Model.Button
-import KMonad.Keyboard
-import KMonad.Keyboard.IO
+import KMonad.App.KeyIO
+import KMonad.Model.Types
+import KMonad.Pullchain.Button
+import KMonad.Pullchain.Types
+import KMonad.Util.Keyboard
+-- import KMonad.Keyboard
+-- import KMonad.Keyboard.IO
 import KMonad.Util
 
-import Text.Megaparsec
-import Text.Megaparsec.Char
+import Text.Megaparsec      as X
+import Text.Megaparsec.Char as X
 
 --------------------------------------------------------------------------------
 -- $bsc
@@ -90,9 +96,9 @@ data DefButton
   | KTapMacro [DefButton]                  -- ^ Sequence of buttons to tap
   | KTapMacroRelease [DefButton]           -- ^ Sequence of buttons to tap, tap the last when released
   | KComposeSeq [DefButton]                -- ^ Compose-key sequence
-  | KPause Milliseconds                    -- ^ Pause for a period of time
-  | KLayerDelay Int LayerTag               -- ^ Switch to a layer for a period of time
-  | KLayerNext LayerTag                    -- ^ Perform next button in different layer
+  | KPause Ms                    -- ^ Pause for a period of time
+  | KLayerDelay Int Name               -- ^ Switch to a layer for a period of time
+  | KLayerNext Name                    -- ^ Perform next button in different layer
   | KCommand Text (Maybe Text)             -- ^ Execute a shell command on press, as well
                                            --   as possibly on release
   | KStickyKey Int DefButton               -- ^ Act as if a button is pressed for a period of time
@@ -107,15 +113,14 @@ data DefButton
 -- | The 'CfgToken' contains all the data needed to construct an
 -- 'KMonad.App.AppCfg'.
 data CfgToken = CfgToken
-  { _src   :: LogFunc -> IO (Acquire KeySource) -- ^ How to grab the source keyboard
-  , _snk   :: LogFunc -> IO (Acquire KeySink)   -- ^ How to construct the out keybboard
-  , _km    :: LMap Button                       -- ^ An 'LMap' of 'Button' actions
-  , _fstL  :: LayerTag                          -- ^ Name of initial layer
-  , _flt   :: Bool                              -- ^ How to deal with unhandled events
-  , _allow :: Bool                              -- ^ Whether to allow shell commands
+  { _src   :: KeyInputCfg  -- ^ How to grab the source keyboard
+  , _snk   :: KeyOutputCfg -- ^ How to construct the out keybboard
+  , _km    :: Keymap BCfg  -- ^ A collection of layers of button configurations
+  , _fstL  :: Name         -- ^ Name of initial layer
+  , _flt   :: Bool         -- ^ How to deal with unhandled events
+  , _allow :: Bool         -- ^ Whether to allow shell commands
   }
 makeClassy ''CfgToken
-
 
 --------------------------------------------------------------------------------
 -- $tls
